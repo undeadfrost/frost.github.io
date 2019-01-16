@@ -79,18 +79,18 @@
 
 
 
-<meta name="description" content="&amp;emsp;&amp;emsp;如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。">
+<meta name="description" content="如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。">
 <meta name="keywords" content="Mysql">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Mysql利用binlog日志恢复数据库">
 <meta property="og:url" content="http://yoursite.com/2018/12/13/Mysql利用binlog日志恢复数据库/index.html">
 <meta property="og:site_name" content="Frost Blog">
-<meta property="og:description" content="&amp;emsp;&amp;emsp;如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。">
+<meta property="og:description" content="如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-01-02T09:24:09.238Z">
+<meta property="og:updated_time" content="2019-01-16T09:27:44.649Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Mysql利用binlog日志恢复数据库">
-<meta name="twitter:description" content="&amp;emsp;&amp;emsp;如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。">
+<meta name="twitter:description" content="如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。">
 
 
 
@@ -320,8 +320,7 @@
       
 
       
-        <p>&emsp;&emsp;如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。</p>
-<a id="more"></a>
+        <p>如果没有对mysql进行备份或者导出文件的话，数据库一旦误操作，还可以通过mysql的操作日志binlog来进行恢复。<br><a id="more"></a></p>
 <p>&emsp;&emsp;一般情况下默认安装的Mysql数据库是不会开启日志文件的，需要手动进行开启。<br>在/etc/my.cnf配置文件中[mysqld] #选项添加<br>log-bin=mysql-bin #日志文件名称，未指定位置，默认数据文件位置<br>配置完成后重启Mysql，我是centos7.3使用systemctl restart mysqld.service命令重启，这时候可能会报错，在进入到刚才的配置文件，同样的位置加上server-id=1，如果在集群环境下，需要配置不同的值。<br>登录Mysql 输入查询语句 show master logs; 会得到如下结果，这样子binlog日志就开启成功！<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show master logs;</span><br><span class="line">+------------------+-----------+</span><br><span class="line">| Log_name         | File_size |</span><br><span class="line">+------------------+-----------+</span><br><span class="line">| mysql-bin.000001 |       154 |</span><br><span class="line">+------------------+-----------+</span><br><span class="line">1 row in set (0.00 sec)</span><br></pre></td></tr></table></figure></p>
 <p>日志文件在到达一定大小的时候会新建一个，当然也可以手动刷新，可以使用sql查看正在写入的日志文件<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show master status;</span><br><span class="line">+------------------+----------+--------------+------------------+-------------------+</span><br><span class="line">| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |</span><br><span class="line">+------------------+----------+--------------+------------------+-------------------+</span><br><span class="line">| mysql-bin.000001 |      154 |              |                  |                   |</span><br><span class="line">+------------------+----------+--------------+------------------+-------------------+</span><br><span class="line">1 row in set (0.00 sec)</span><br></pre></td></tr></table></figure></p>
 <p>查看当前正在写入的日志内容<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show binlog events;</span><br><span class="line">+------------------+-----+----------------+-----------+-------------+---------------------------------------+</span><br><span class="line">| Log_name         | Pos | Event_type     | Server_id | End_log_pos | Info                                  |</span><br><span class="line">+------------------+-----+----------------+-----------+-------------+---------------------------------------+</span><br><span class="line">| mysql-bin.000001 |   4 | Format_desc    |         1 |         123 | Server ver: 5.7.24-log, Binlog ver: 4 |</span><br><span class="line">| mysql-bin.000001 | 123 | Previous_gtids |         1 |         154 |                                       |</span><br><span class="line">+------------------+-----+----------------+-----------+-------------+---------------------------------------+</span><br><span class="line">2 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure></p>
@@ -443,7 +442,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
